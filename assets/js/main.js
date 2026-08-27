@@ -356,9 +356,10 @@
         </div>
         <h3>${Data.escapeHTML(equipment.name)}</h3>
         <dl class="equipment-meta">
+          <div><dt>数量</dt><dd>${Data.escapeHTML(equipment.quantity || "待确认")}</dd></div>
           <div><dt>位置</dt><dd>${Data.escapeHTML(equipment.location)}</dd></div>
           <div><dt>负责人</dt><dd>${Data.escapeHTML(equipment.manager || "待定")}</dd></div>
-          <div><dt>预约要求</dt><dd>${equipment.booking_required === "是" ? "需预约" : "登记即可"}</dd></div>
+          <div><dt>预约要求</dt><dd>${equipment.booking_required === "是" ? "需预约" : equipment.booking_required === "否" ? "登记即可" : "待确认"}</dd></div>
         </dl>
         <p>${Data.escapeHTML(equipment.notes)}</p>
         <div class="material-row">${renderEquipmentLink(equipment.form_link)}</div>
@@ -374,7 +375,7 @@
     const pendingUsage = usage.filter((item) => item.status.includes("待")).length;
     const formLinks = Data.unique(equipment.map((item) => item.form_link)).filter((link) => link && link !== "内部链接");
 
-    setHTML("#metricEquipmentTotal", String(equipment.length));
+    setHTML("#metricEquipmentTotal", `${equipment.length} 类`);
     setHTML("#metricEquipmentAvailable", String(availableCount));
     setHTML("#metricEquipmentUsing", String(usingCount));
     setHTML("#metricUsagePending", String(pendingUsage));
