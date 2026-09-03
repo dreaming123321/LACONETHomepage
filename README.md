@@ -31,6 +31,7 @@ http://localhost:8080
 - 更新组会安排：编辑 `data/meetings.csv`
 - 更新文献列表：编辑 `data/papers.csv`
 - 新增文献解读：在 `notes/` 下新增一篇与 `papers.csv` 中 `id` 对应的 Markdown
+- 新增会议纪要：在 `records/` 下新增一篇与 `meetings.csv` 中 `id` 对应的 Markdown
 - 更新设备台账：编辑 `data/equipment.csv`
 - 更新设备使用记录：编辑 `data/equipment-usage.csv`
 - 修改汇报模板：编辑 `templates/` 下的 Markdown
@@ -48,6 +49,7 @@ http://localhost:8080
 ├── index.html
 ├── papers.html
 ├── paper.html
+├── meeting.html
 ├── archive.html
 ├── equipment.html
 ├── templates.html
@@ -59,6 +61,8 @@ http://localhost:8080
 │   └── equipment-usage.csv
 ├── notes/
 │   └── all-sky-autonomous-computing-uav-swarm-2024.md
+├── records/
+│   └── meeting-2026-06-18.md
 ├── templates/
 │   ├── literature-note-template.md
 │   ├── meeting-record-template.md

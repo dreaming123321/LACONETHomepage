@@ -26,6 +26,7 @@
       home: "home",
       papers: "papers",
       "paper-detail": "papers",
+      "meeting-detail": "archive",
       archive: "archive",
       equipment: "equipment",
       templates: "templates",
@@ -47,6 +48,21 @@
 
   function paperURL(id) {
     return `paper.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function meetingURL(id) {
+    return `meeting.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function renderMeetingRecordLink(meeting) {
+    if (!meeting.record) return "";
+    if (meeting.record === "内部链接") {
+      return `<span class="material disabled">会议纪要 · 内部</span>`;
+    }
+    if (/^https?:\/\//i.test(meeting.record)) {
+      return `<a class="material" href="${Data.escapeHTML(meeting.record)}">会议纪要</a>`;
+    }
+    return `<a class="material" href="${meetingURL(meeting.id)}">会议纪要</a>`;
   }
 
   function materialLinksForPaper(paper) {
@@ -110,7 +126,7 @@
       ${current.next_topic ? `<p class="meeting-note">${Data.escapeHTML(current.next_topic)}</p>` : ""}
       <div class="material-row">
         ${Data.renderMaterialLink("会议入口", current.materials)}
-        ${Data.renderMaterialLink("记录", current.record)}
+        ${renderMeetingRecordLink(current)}
       </div>
     `);
 
@@ -147,7 +163,7 @@
       </div>
       <div class="compact-list">
         ${(archivedMeetings.length ? Data.sortByDateDesc(archivedMeetings, "date") : Data.sortByDateDesc(meetings, "date")).slice(0, 4).map((meeting) => `
-          <a href="archive.html">
+          <a href="${meeting.record ? meetingURL(meeting.id) : "archive.html"}">
             <strong>${Data.escapeHTML(meeting.topic)}</strong>
             <span>${Data.formatDate(meeting.date)} · ${Data.escapeHTML(personList(meeting.presenter))}</span>
           </a>
@@ -273,15 +289,15 @@
       const markdown = await Data.fetchText(paper.notes);
       const parsed = Data.parseFrontMatter(markdown);
       setHTML("#paperArticle", Data.markdownToHTML(parsed.body));
-      buildTOC();
+      buildTOC("#paperToc");
     } catch (error) {
       setHTML("#paperArticle", emptyState("无法读取解读文件", error.message));
     }
   }
 
-  function buildTOC() {
+  function buildTOC(targetSelector) {
     const headings = qsa(".article-body h2, .article-body h3");
-    setHTML("#paperToc", headings.map((heading) => `<a href="#${heading.id}" class="toc-${heading.tagName.toLowerCase()}">${heading.textContent}</a>`).join(""));
+    setHTML(targetSelector, headings.map((heading) => `<a href="#${heading.id}" class="toc-${heading.tagName.toLowerCase()}">${heading.textContent}</a>`).join(""));
   }
 
   async function initArchive() {
@@ -308,12 +324,61 @@
             </div>
             <div class="material-row">
               ${Data.renderMaterialLink("资料", meeting.materials)}
-              ${Data.renderMaterialLink("记录", meeting.record)}
+              ${renderMeetingRecordLink(meeting)}
             </div>
           </div>
         </article>
       `;
     }).join("") || emptyState("暂无历史归档", "完成组会后，将 status 标记为“已归档”即可在这里显示。"));
+  }
+
+  async function initMeetingDetail() {
+    const id = new URLSearchParams(window.location.search).get("id");
+    const [meetings, papers] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers")]);
+    const archived = Data.sortByDateDesc(meetings.filter((meeting) => meeting.status.includes("归档")), "date");
+    const meeting = meetings.find((item) => item.id === id) || archived[0] || meetings[0];
+    const byId = new Map(papers.map((paper) => [paper.id, paper]));
+
+    if (!meeting) {
+      setHTML("#meetingHero", emptyState("未找到组会", "请先在 meetings.csv 中新增组会记录。"));
+      setHTML("#meetingArticle", "");
+      return;
+    }
+
+    const related = Data.list(meeting.paper_ids).map((paperId) => byId.get(paperId)).filter(Boolean);
+    document.title = `${meeting.topic} | LACONET`;
+    setHTML("#meetingHero", `
+      <p class="eyebrow">Meeting Minutes</p>
+      <h1>${Data.escapeHTML(meeting.topic)}</h1>
+      <p class="summary">${Data.formatFullDate(meeting.date)} ${Data.escapeHTML(meeting.time)} · ${Data.escapeHTML(meeting.location)}</p>
+      <div class="paper-hero-meta">
+        <span>${Data.escapeHTML(meeting.mode || "待确认")}</span>
+        <span>主持人：${Data.escapeHTML(personList(meeting.host))}</span>
+        <span>汇报人：${Data.escapeHTML(personList(meeting.presenter))}</span>
+        ${Data.renderStatus(meeting.status)}
+      </div>
+      <div class="material-row">
+        ${Data.renderMaterialLink("资料", meeting.materials)}
+        <a class="material" href="archive.html">返回归档</a>
+      </div>
+      ${related.length ? `<div class="archive-papers hero-related">${related.map((paper) => `<a href="${paperURL(paper.id)}">${Data.escapeHTML(paper.title)}<span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.presenter)}</span></a>`).join("")}</div>` : ""}
+    `);
+
+    if (!meeting.record) {
+      setHTML("#meetingArticle", emptyState("暂无会议纪要", "会议结束后，在 meetings.csv 的 record 字段中填写 records/*.md 路径。"));
+      setHTML("#meetingToc", "");
+      return;
+    }
+
+    try {
+      const markdown = await Data.fetchText(meeting.record);
+      const parsed = Data.parseFrontMatter(markdown);
+      setHTML("#meetingArticle", Data.markdownToHTML(parsed.body));
+      buildTOC("#meetingToc");
+    } catch (error) {
+      setHTML("#meetingArticle", emptyState("无法读取会议纪要", error.message));
+      setHTML("#meetingToc", "");
+    }
   }
 
   function equipmentStatusClass(status) {
@@ -621,6 +686,7 @@
       if (page === "home") await initHome();
       if (page === "papers") await initPapers();
       if (page === "paper-detail") await initPaperDetail();
+      if (page === "meeting-detail") await initMeetingDetail();
       if (page === "archive") await initArchive();
       if (page === "equipment") await initEquipment();
       if (page === "templates") await initTemplates();

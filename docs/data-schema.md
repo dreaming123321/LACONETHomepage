@@ -17,7 +17,7 @@
 | `todo` | 待办事项，多个事项用分号分隔 | `上传 PPT;补充讨论记录` |
 | `next_topic` | 下周预告或后续主题 | `低空通信感知一体化` |
 | `materials` | 资料入口，可填 URL、相对路径或 `内部链接` | `内部链接` |
-| `record` | 组会记录入口，可填 URL、相对路径或留空 | `notes/meeting-2026-06-26.md` |
+| `record` | 会议纪要 Markdown 路径、URL 或留空 | `records/meeting-2026-06-26.md` |
 
 ## `data/papers.csv`
 
@@ -81,6 +81,32 @@ tags:
 
 ## 延伸阅读
 ```
+
+## 会议纪要存放约定
+
+每次组会结束后，建议在 `records/` 下新增一篇会议纪要 Markdown，并在 `data/meetings.csv` 的 `record` 字段中填写对应路径。
+
+推荐命名：
+
+```text
+records/meeting-YYYY-MM-DD.md
+```
+
+示例：
+
+```text
+records/meeting-2026-06-18.md
+```
+
+会议纪要建议包含：
+
+- 基本信息：时间、地点、主持人、记录人
+- 本次议程：研究生文献解读、本科生文献解读、个人或小组进展汇报
+- 文献解读要点
+- 讨论问题
+- 会议结论
+- 待办事项
+- 下次组会预告
 
 ## `data/equipment.csv`
 

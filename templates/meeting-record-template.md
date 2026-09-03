@@ -1,3 +1,12 @@
+---
+id:
+date:
+time:
+location:
+host:
+recorder:
+---
+
 # LACONET 组会记录
 
 ## 基本信息
@@ -38,4 +47,3 @@
 |  |  |  |  |
 
 ## 下周预告
-

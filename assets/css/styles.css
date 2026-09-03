@@ -857,6 +857,10 @@ h3 {
   margin-top: 16px;
 }
 
+.hero-related {
+  margin-top: 22px;
+}
+
 .archive-papers a {
   display: grid;
   gap: 4px;

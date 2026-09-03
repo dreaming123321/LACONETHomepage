@@ -11,6 +11,7 @@ https://hollywuzh.github.io/LACONETHomepage/
 - 组会安排：`data/meetings.csv`
 - 文献索引：`data/papers.csv`
 - 文献解读正文：`notes/*.md`
+- 会议纪要正文：`records/*.md`
 - 实验室设备台账：`data/equipment.csv`
 - 设备使用记录：`data/equipment-usage.csv`
 - 汇报模板：`templates/*.md`
@@ -48,6 +49,7 @@ git push
 
 - 更新组会安排：`Update seminar schedule`
 - 更新文献解读：`Add literature note`
+- 更新会议纪要：`Add meeting minutes`
 - 更新模板：`Update presentation templates`
 - 更新设备信息：`Update equipment registry`
 
