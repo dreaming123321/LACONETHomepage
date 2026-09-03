@@ -743,6 +743,18 @@ h3 {
   color: #334155;
 }
 
+.article-body .task-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  list-style: none;
+}
+
+.article-body .task-item input {
+  margin-top: 5px;
+  accent-color: var(--primary);
+}
+
 .article-body a {
   color: var(--primary);
   font-weight: 750;

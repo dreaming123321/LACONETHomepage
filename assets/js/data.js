@@ -250,13 +250,20 @@
 
     function flushList() {
       if (listItems.length) {
-        html.push(`<ul>${listItems.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</ul>`);
+        html.push(`<ul>${listItems.map(renderListItem).join("")}</ul>`);
         listItems = [];
       }
       if (orderedItems.length) {
         html.push(`<ol>${orderedItems.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</ol>`);
         orderedItems = [];
       }
+    }
+
+    function renderListItem(item) {
+      const task = item.match(/^\[( |x|X)\]\s+(.+)$/);
+      if (!task) return `<li>${inlineMarkdown(item)}</li>`;
+      const checked = task[1].toLowerCase() === "x" ? " checked" : "";
+      return `<li class="task-item"><input type="checkbox" disabled${checked}><span>${inlineMarkdown(task[2])}</span></li>`;
     }
 
     function flushTable() {
@@ -329,11 +336,13 @@
         return;
       }
 
-      const quote = line.match(/^>\s+(.+)$/);
+      const quote = line.match(/^>\s?(.*)$/);
       if (quote) {
         flushParagraph();
         flushList();
-        html.push(`<blockquote>${inlineMarkdown(quote[1])}</blockquote>`);
+        if (quote[1].trim()) {
+          html.push(`<blockquote>${inlineMarkdown(quote[1])}</blockquote>`);
+        }
         return;
       }
 

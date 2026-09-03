@@ -497,7 +497,7 @@
         filename: "meeting-record-template.md"
       },
       slides: {
-        title: "PPT 检查清单",
+        title: "论文精读汇报指南",
         path: "templates/slides-checklist.md",
         filename: "slides-checklist.md"
       }
@@ -513,8 +513,9 @@
     async function previewTemplate(key) {
       try {
         const template = await loadTemplate(key);
+        const parsed = Data.parseFrontMatter(template.markdown);
         setHTML("#templatePreviewTitle", `${Data.escapeHTML(template.title)}预览`);
-        setHTML("#templatePreview", Data.markdownToHTML(template.markdown));
+        setHTML("#templatePreview", Data.markdownToHTML(parsed.body));
         qsa("[data-template-select]").forEach((button) => {
           button.toggleAttribute("aria-pressed", button.dataset.templateSelect === key);
         });
