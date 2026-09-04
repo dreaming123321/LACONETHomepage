@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>文献解读库 | LACONET</title>
-    <meta name="description" content="LACONET 文献解读库，按方向、年份、汇报人和状态筛选论文。">
+    <title>文献与汇报库 | LACONET</title>
+    <meta name="description" content="LACONET 文献与汇报库，按 PID 管理论文，按 RID 查看每次组会汇报。">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="assets/css/styles.css">
+    <link rel="stylesheet" href="assets/css/styles.css?v=20260904-pid-rid">
   </head>
   <body data-page="papers">
     <header class="site-header">
@@ -30,15 +30,15 @@
     <main class="page-shell">
       <section class="page-heading">
         <p class="eyebrow">Literature Library</p>
-        <h1>文献解读库</h1>
-        <p>按研究方向、年份、汇报人和解读状态检索组会文献。</p>
+        <h1>文献与汇报库</h1>
+        <p>PID 管论文实体和 PDF，RID 管每次汇报的 PPT、Markdown 与讨论记录。</p>
       </section>
 
       <section class="library-layout">
         <aside class="filter-panel" aria-label="文献筛选">
           <label>
             <span>关键词</span>
-            <input id="paperSearch" type="search" placeholder="标题、标签、汇报人">
+            <input id="paperSearch" type="search" placeholder="PID、标题、标签、汇报人">
           </label>
           <label>
             <span>研究方向</span>
@@ -61,7 +61,7 @@
 
         <section class="library-results">
           <div class="result-toolbar">
-            <strong id="paperResultCount">-- 篇文献</strong>
+            <strong id="paperResultCount">-- 篇入库论文</strong>
             <span id="paperResultMeta">全部方向</span>
           </div>
           <div class="paper-grid" id="paperGrid"></div>
@@ -74,7 +74,7 @@
       <span>© <span id="currentYear"></span></span>
     </footer>
 
-    <script src="assets/js/data.js"></script>
-    <script src="assets/js/main.js"></script>
+    <script src="assets/js/data.js?v=20260904-pid-rid"></script>
+    <script src="assets/js/main.js?v=20260904-pid-rid"></script>
   </body>
 </html>

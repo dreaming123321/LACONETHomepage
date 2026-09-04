@@ -1,0 +1,2 @@
+rid,pid,meeting_id,report_date,report_type,presenter,student_uid,duration,status,ppt,notes,code,summary,discussion
+RPT-20260618-REN-YU,DOI-10.1109_TMC.2024.3427420,meeting-2026-06-18,2026-06-18,研究生文献解读,任宇,REN-YU,15-20 分钟,已归档,内部链接,notes/RPT-20260618-REN-YU.md,,围绕无人机集群全天候自主计算框架进行文献解读。,该框架中的自主计算能力如何与低空边缘节点协同?;全天候场景下通信中断如何影响计算任务连续性?

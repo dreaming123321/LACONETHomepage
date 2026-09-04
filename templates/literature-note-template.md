@@ -1,14 +1,30 @@
 ---
-id:
+rid:
+pid:
 title:
 presenter:
+student_uid:
 meeting_date:
+report_type:
 direction:
 tags:
   -
 ---
 
 # 论文标题
+
+## 文献信息
+
+- PID：
+- RID：
+- DOI：
+- 作者：
+- 来源：
+- 出版年份：
+- 汇报人：
+- 学生编号：
+- 汇报类型：
+- 组会日期：
 
 ## 一句话总结
 
@@ -31,4 +47,3 @@ tags:
 ## 组会讨论问题
 
 ## 延伸阅读
-

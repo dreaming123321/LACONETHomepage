@@ -26,6 +26,7 @@
       home: "home",
       papers: "papers",
       "paper-detail": "papers",
+      "report-detail": "papers",
       "meeting-detail": "archive",
       archive: "archive",
       equipment: "equipment",
@@ -46,12 +47,59 @@
     return people.length ? people.join("、") : "待定";
   }
 
-  function paperURL(id) {
-    return `paper.html?id=${encodeURIComponent(id)}`;
+  function paperPid(paper) {
+    return paper?.pid || paper?.id || "";
+  }
+
+  function reportRid(report) {
+    return report?.rid || report?.id || "";
+  }
+
+  function reportPid(report) {
+    return report?.pid || report?.paper_id || "";
+  }
+
+  function reportDate(report) {
+    return report?.report_date || report?.meeting_date || "";
+  }
+
+  function paperURL(pid) {
+    return `paper.html?pid=${encodeURIComponent(pid)}`;
+  }
+
+  function reportURL(rid) {
+    return `report.html?rid=${encodeURIComponent(rid)}`;
   }
 
   function meetingURL(id) {
     return `meeting.html?id=${encodeURIComponent(id)}`;
+  }
+
+  function reportsForPaper(paper, reports) {
+    const pid = paperPid(paper);
+    return Data.sortByDateDesc(reports.filter((report) => reportPid(report) === pid), "report_date");
+  }
+
+  function reportIdsForMeeting(meeting) {
+    return Data.list(meeting.report_ids || meeting.paper_ids);
+  }
+
+  function reportsForMeeting(meeting, reports) {
+    const ids = reportIdsForMeeting(meeting);
+    if (ids.length) {
+      return ids.map((id) => reports.find((report) => reportRid(report) === id)).filter(Boolean);
+    }
+    return reports.filter((report) => report.meeting_id === meeting.id || reportDate(report) === meeting.date);
+  }
+
+  function reportPresenterList(reports) {
+    const presenters = Data.unique(reports.map((report) => report.presenter));
+    return presenters.length ? presenters.join("、") : "待定";
+  }
+
+  function reportCountText(reports) {
+    if (!reports.length) return "暂无 RID";
+    return `${reports.length} 次汇报`;
   }
 
   function renderMeetingRecordLink(meeting) {
@@ -65,47 +113,84 @@
     return `<a class="material" href="${meetingURL(meeting.id)}">会议纪要</a>`;
   }
 
-  function materialLinksForPaper(paper) {
+  function materialLinksForPaper(paper, reports = []) {
+    const latest = reports[0];
     return [
       Data.renderMaterialLink("PDF", paper.pdf),
-      Data.renderMaterialLink("PPT", paper.ppt),
-      paper.notes ? `<a class="material" href="${paperURL(paper.id)}">解读</a>` : "",
+      latest?.notes ? `<a class="material" href="${reportURL(reportRid(latest))}">最新解读</a>` : "",
+      latest ? Data.renderMaterialLink("最新 PPT", latest.ppt) : "",
       Data.renderMaterialLink("代码", paper.code)
     ].filter(Boolean).join("");
   }
 
-  function renderPaperCard(paper) {
+  function materialLinksForReport(report, paper = {}, includeNotes = true) {
+    return [
+      Data.renderMaterialLink("PDF", paper.pdf),
+      Data.renderMaterialLink("PPT", report.ppt),
+      includeNotes && report.notes ? `<a class="material" href="${reportURL(reportRid(report))}">解读</a>` : "",
+      Data.renderMaterialLink("代码", report.code || paper.code)
+    ].filter(Boolean).join("");
+  }
+
+  function renderPaperCard(paper, reports = []) {
+    const pid = paperPid(paper);
+    const latest = reports[0];
+    const meta = latest
+      ? `${reportPresenterList(reports)} · 最新 ${Data.formatDate(reportDate(latest))} · ${reportCountText(reports)}`
+      : "暂无汇报记录";
     return `
       <article class="paper-card">
         <div class="paper-card-top">
           ${Data.renderStatus(paper.status)}
           <span>${Data.escapeHTML(paper.year)}</span>
         </div>
-        <h3><a href="${paperURL(paper.id)}">${Data.escapeHTML(paper.title)}</a></h3>
-        <p class="paper-meta">${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(personList(paper.presenter))} · ${Data.formatDate(paper.meeting_date)}</p>
+        <h3><a href="${paperURL(pid)}">${Data.escapeHTML(paper.title)}</a></h3>
+        <p class="paper-meta">${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(meta)}</p>
+        <p><code class="id-chip">${Data.escapeHTML(pid)}</code></p>
         <p>${Data.escapeHTML(paper.summary)}</p>
         <div class="tag-row">${Data.renderTags(paper.tags)}</div>
-        <div class="material-row">${materialLinksForPaper(paper)}</div>
+        <div class="material-row">${materialLinksForPaper(paper, reports)}</div>
       </article>
     `;
   }
 
-  function renderMeetingMeta(meeting) {
+  function renderReportCard(report, paper = {}) {
+    const rid = reportRid(report);
+    const pid = reportPid(report);
+    return `
+      <article class="paper-card">
+        <div class="paper-card-top">
+          ${Data.renderStatus(report.status)}
+          <span>${Data.escapeHTML(report.report_type || "文献解读")}</span>
+        </div>
+        <h3><a href="${reportURL(rid)}">${Data.escapeHTML(paper.title || pid)}</a></h3>
+        <p class="paper-meta">${Data.formatFullDate(reportDate(report))} · ${Data.escapeHTML(report.presenter || "待定")} · ${Data.escapeHTML(report.duration || "待定")}</p>
+        <p class="id-row"><code class="id-chip">${Data.escapeHTML(rid)}</code><code class="id-chip soft">${Data.escapeHTML(pid)}</code></p>
+        <p>${Data.escapeHTML(report.summary || paper.summary || "")}</p>
+        <div class="tag-row">${Data.renderTags(paper.tags)}</div>
+        <div class="material-row">${materialLinksForReport(report, paper)}</div>
+      </article>
+    `;
+  }
+
+  function renderMeetingMeta(meeting, reports = []) {
+    const presenters = reports.length ? reportPresenterList(reports) : personList(meeting.presenter);
+    const reportLabel = reports.length ? `${reports.length} 个 RID` : "待定";
     return `
       <dl class="meta-grid">
         <div><dt>时间</dt><dd>${Data.formatFullDate(meeting.date)} ${Data.escapeHTML(meeting.time)}</dd></div>
         <div><dt>地点</dt><dd>${Data.escapeHTML(meeting.location)} · ${Data.escapeHTML(meeting.mode)}</dd></div>
         <div><dt>主持人</dt><dd>${Data.escapeHTML(personList(meeting.host))}</dd></div>
-        <div><dt>汇报人</dt><dd>${Data.escapeHTML(personList(meeting.presenter))}</dd></div>
+        <div><dt>汇报</dt><dd>${Data.escapeHTML(presenters)} · ${Data.escapeHTML(reportLabel)}</dd></div>
       </dl>
     `;
   }
 
   async function initHome() {
-    const [meetings, papers] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers")]);
+    const [meetings, papers, reports] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers"), Data.loadCSV("reports")]);
+    const byPid = new Map(papers.map((paper) => [paperPid(paper), paper]));
     const current = Data.findCurrentMeeting(meetings);
-    const currentIds = Data.list(current.paper_ids);
-    const currentPapers = papers.filter((paper) => currentIds.includes(paper.id) || paper.meeting_date === current.date);
+    const currentReports = reportsForMeeting(current, reports);
     const archivedMeetings = meetings.filter((meeting) => meeting.status.includes("归档"));
     const todoItems = Data.list(current.todo);
     const next = Data.sortByDateAsc(meetings, "date").find((meeting) => Data.dateValue(meeting.date) > Data.dateValue(current.date));
@@ -122,7 +207,7 @@
         ${Data.renderStatus(current.status)}
       </div>
       <h3 class="feature-title">${Data.escapeHTML(current.topic)}</h3>
-      ${renderMeetingMeta(current)}
+      ${renderMeetingMeta(current, currentReports)}
       ${current.next_topic ? `<p class="meeting-note">${Data.escapeHTML(current.next_topic)}</p>` : ""}
       <div class="material-row">
         ${Data.renderMaterialLink("会议入口", current.materials)}
@@ -143,7 +228,7 @@
         <p class="eyebrow">Reading</p>
         <h2>本周文献解读</h2>
       </div>
-      <div class="paper-list">${currentPapers.map(renderPaperCard).join("") || emptyState("暂无文献", "在 papers.csv 中关联本周文献。")}</div>
+      <div class="paper-list">${currentReports.map((report) => renderReportCard(report, byPid.get(reportPid(report)))).join("") || emptyState("暂无文献", "在 reports.csv 中关联本周 RID。")}</div>
     `);
 
     setHTML("#nextMeetingCard", `
@@ -162,25 +247,28 @@
         <h2>近期组会记录</h2>
       </div>
       <div class="compact-list">
-        ${(archivedMeetings.length ? Data.sortByDateDesc(archivedMeetings, "date") : Data.sortByDateDesc(meetings, "date")).slice(0, 4).map((meeting) => `
-          <a href="${meeting.record ? meetingURL(meeting.id) : "archive.html"}">
-            <strong>${Data.escapeHTML(meeting.topic)}</strong>
-            <span>${Data.formatDate(meeting.date)} · ${Data.escapeHTML(personList(meeting.presenter))}</span>
-          </a>
-        `).join("") || emptyState("暂无归档", "历史组会记录尚未录入。")}
+        ${(archivedMeetings.length ? Data.sortByDateDesc(archivedMeetings, "date") : Data.sortByDateDesc(meetings, "date")).slice(0, 4).map((meeting) => {
+          const meetingReports = reportsForMeeting(meeting, reports);
+          return `
+            <a href="${meeting.record ? meetingURL(meeting.id) : "archive.html"}">
+              <strong>${Data.escapeHTML(meeting.topic)}</strong>
+              <span>${Data.formatDate(meeting.date)} · ${Data.escapeHTML(reportPresenterList(meetingReports))}</span>
+            </a>
+          `;
+        }).join("") || emptyState("暂无归档", "历史组会记录尚未录入。")}
       </div>
     `);
 
     setHTML("#latestPapersCard", `
       <div class="card-head">
         <p class="eyebrow">Library</p>
-        <h2>最新归档文献</h2>
+        <h2>最新入库论文</h2>
       </div>
       <div class="compact-list">
-        ${Data.sortByDateDesc(papers, "meeting_date").slice(0, 4).map((paper) => `
-          <a href="${paperURL(paper.id)}">
+        ${[...papers].sort((a, b) => Number(b.year || 0) - Number(a.year || 0)).slice(0, 4).map((paper) => `
+          <a href="${paperURL(paperPid(paper))}">
             <strong>${Data.escapeHTML(paper.title)}</strong>
-            <span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.year)}</span>
+            <span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.year)} · ${reportCountText(reportsForPaper(paper, reports))}</span>
           </a>
         `).join("")}
       </div>
@@ -194,13 +282,16 @@
       </a>`;
     }).join(""));
 
-    const questions = papers.flatMap((paper) => Data.list(paper.discussion).map((question) => ({ question, paper }))).slice(0, 6);
-    setHTML("#discussionQuestions", questions.map(({ question, paper }) => `
-      <a href="${paperURL(paper.id)}">
+    const questions = reports.flatMap((report) => {
+      const paper = byPid.get(reportPid(report)) || {};
+      return Data.list(report.discussion).map((question) => ({ question, report, paper }));
+    }).slice(0, 6);
+    setHTML("#discussionQuestions", questions.map(({ question, report, paper }) => `
+      <a href="${reportURL(reportRid(report))}">
         <strong>${Data.escapeHTML(question)}</strong>
-        <span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.presenter)}</span>
+        <span>${Data.escapeHTML(paper.direction || "文献解读")} · ${Data.escapeHTML(report.presenter || "待定")}</span>
       </a>
-    `).join("") || emptyState("暂无问题", "在 papers.csv 的 discussion 字段中补充。"));
+    `).join("") || emptyState("暂无问题", "在 reports.csv 的 discussion 字段中补充。"));
 
     drawNetworkCanvas();
   }
@@ -210,7 +301,7 @@
   }
 
   async function initPapers() {
-    const papers = await Data.loadCSV("papers");
+    const [papers, reports] = await Promise.all([Data.loadCSV("papers"), Data.loadCSV("reports")]);
     const search = qs("#paperSearch");
     const direction = qs("#directionFilter");
     const year = qs("#yearFilter");
@@ -220,23 +311,25 @@
 
     fillSelect(direction, Data.unique(papers.map((paper) => paper.direction)), "全部方向");
     fillSelect(year, Data.unique(papers.map((paper) => paper.year)).reverse(), "全部年份");
-    fillSelect(presenter, Data.unique(papers.map((paper) => paper.presenter)), "全部汇报人");
-    fillSelect(status, Data.unique(papers.map((paper) => paper.status)), "全部状态");
+    fillSelect(presenter, Data.unique(reports.map((report) => report.presenter)), "全部汇报人");
+    fillSelect(status, Data.unique([...papers.map((paper) => paper.status), ...reports.map((report) => report.status)]), "全部状态");
 
     function applyFilters() {
       const query = search.value.trim().toLowerCase();
       const filtered = papers.filter((paper) => {
-        const haystack = [paper.title, paper.authors, paper.venue, paper.presenter, paper.direction, paper.tags, paper.summary].join(" ").toLowerCase();
+        const related = reportsForPaper(paper, reports);
+        const reportText = related.map((report) => [reportRid(report), report.presenter, report.student_uid, report.report_type, report.status, report.summary, report.discussion].join(" ")).join(" ");
+        const haystack = [paperPid(paper), paper.title, paper.authors, paper.venue, paper.doi, paper.direction, paper.tags, paper.summary, reportText].join(" ").toLowerCase();
         return (!query || haystack.includes(query))
           && (!direction.value || paper.direction === direction.value)
           && (!year.value || paper.year === year.value)
-          && (!presenter.value || paper.presenter === presenter.value)
-          && (!status.value || paper.status === status.value);
+          && (!presenter.value || related.some((report) => report.presenter === presenter.value))
+          && (!status.value || paper.status === status.value || related.some((report) => report.status === status.value));
       });
 
-      setHTML("#paperResultCount", `${filtered.length} 篇文献`);
+      setHTML("#paperResultCount", `${filtered.length} 篇入库论文`);
       setHTML("#paperResultMeta", direction.value || "全部方向");
-      grid.innerHTML = filtered.map(renderPaperCard).join("") || emptyState("没有匹配文献", "调整筛选条件后查看。");
+      grid.innerHTML = filtered.map((paper) => renderPaperCard(paper, reportsForPaper(paper, reports))).join("") || emptyState("没有匹配文献", "调整筛选条件后查看。");
     }
 
     [search, direction, year, presenter, status].forEach((control) => {
@@ -255,16 +348,22 @@
   }
 
   async function initPaperDetail() {
-    const id = new URLSearchParams(window.location.search).get("id");
-    const papers = await Data.loadCSV("papers");
-    const paper = papers.find((item) => item.id === id) || papers[0];
+    const params = new URLSearchParams(window.location.search);
+    const pid = params.get("pid") || params.get("id");
+    const [papers, reports, meetings] = await Promise.all([Data.loadCSV("papers"), Data.loadCSV("reports"), Data.loadCSV("meetings")]);
+    const paper = papers.find((item) => paperPid(item) === pid) || papers[0];
+    const byMeeting = new Map(meetings.map((meeting) => [meeting.id, meeting]));
 
     if (!paper) {
       setHTML("#paperHero", emptyState("未找到文献", "请先在 papers.csv 中新增文献。"));
       setHTML("#paperArticle", "");
+      setHTML("#paperToc", "");
       return;
     }
 
+    const related = reportsForPaper(paper, reports);
+    const currentPid = paperPid(paper);
+    const doiLink = paper.doi ? `https://doi.org/${paper.doi}` : "";
     document.title = `${paper.title} | LACONET`;
     setHTML("#paperHero", `
       <p class="eyebrow">${Data.escapeHTML(paper.direction)}</p>
@@ -272,26 +371,107 @@
       <p class="summary">${Data.escapeHTML(paper.summary)}</p>
       <div class="paper-hero-meta">
         <span>${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(paper.year)}</span>
-        <span>汇报人：${Data.escapeHTML(paper.presenter)}</span>
-        <span>${Data.formatFullDate(paper.meeting_date)}</span>
+        <span>PID：${Data.escapeHTML(currentPid)}</span>
+        <span>${reportCountText(related)}</span>
         ${Data.renderStatus(paper.status)}
       </div>
       <div class="tag-row">${Data.renderTags(paper.tags)}</div>
-      <div class="material-row">${materialLinksForPaper(paper)}</div>
+      <div class="material-row">
+        ${Data.renderMaterialLink("PDF", paper.pdf)}
+        ${doiLink ? `<a class="material" href="${Data.escapeHTML(doiLink)}">DOI</a>` : ""}
+        ${Data.renderMaterialLink("代码", paper.code)}
+      </div>
     `);
 
-    if (!paper.notes) {
-      setHTML("#paperArticle", emptyState("暂无 Markdown 解读", "在 papers.csv 的 notes 字段中填写解读路径。"));
+    setHTML("#paperArticle", `
+      <h2>文献信息</h2>
+      <table>
+        <tbody>
+          <tr><th>PID</th><td><code>${Data.escapeHTML(currentPid)}</code></td></tr>
+          <tr><th>DOI</th><td>${paper.doi ? Data.escapeHTML(paper.doi) : "无 DOI，使用 LIT-年份-流水号"}</td></tr>
+          <tr><th>作者</th><td>${Data.escapeHTML(paper.authors)}</td></tr>
+          <tr><th>来源</th><td>${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(paper.year)}</td></tr>
+          <tr><th>方向</th><td>${Data.escapeHTML(paper.direction)}</td></tr>
+          <tr><th>标签</th><td>${Data.escapeHTML(Data.list(paper.tags).join("、"))}</td></tr>
+        </tbody>
+      </table>
+
+      <h2>汇报记录</h2>
+      ${related.length ? `<div class="archive-papers">${related.map((report) => {
+        const meeting = byMeeting.get(report.meeting_id);
+        return `<a href="${reportURL(reportRid(report))}">
+          ${Data.escapeHTML(reportRid(report))}
+          <span>${Data.formatFullDate(reportDate(report))} · ${Data.escapeHTML(report.presenter || "待定")} · ${Data.escapeHTML(report.report_type || "文献解读")}${meeting ? ` · ${Data.escapeHTML(meeting.topic)}` : ""}</span>
+        </a>`;
+      }).join("")}</div>` : emptyState("暂无汇报记录", "已入库文献可以复用 PID，并在 reports.csv 中新增 RID。")}
+
+      <h2>提交规则</h2>
+      <ul>
+        <li>PID 标识论文本身：有 DOI 时优先采用规范化 DOI。</li>
+        <li>同一篇论文只保留一个 PID，PDF 按 PID 只保存一份。</li>
+        <li>RID 标识某次汇报，PPT、Markdown 和讨论问题按 RID 分别归档。</li>
+        <li>已入库文献无需重复提交 PDF，只需复用 PID 并新增 RID。</li>
+      </ul>
+
+      <h2>讨论问题</h2>
+      ${related.some((report) => Data.list(report.discussion).length)
+        ? `<ul>${related.flatMap((report) => Data.list(report.discussion).map((question) => `<li><a href="${reportURL(reportRid(report))}">${Data.escapeHTML(question)}</a></li>`)).join("")}</ul>`
+        : emptyState("暂无讨论问题", "在 reports.csv 的 discussion 字段中补充。")}
+    `);
+    buildTOC("#paperToc");
+  }
+
+  async function initReportDetail() {
+    const params = new URLSearchParams(window.location.search);
+    const rid = params.get("rid") || params.get("id");
+    const [reports, papers, meetings] = await Promise.all([Data.loadCSV("reports"), Data.loadCSV("papers"), Data.loadCSV("meetings")]);
+    const report = reports.find((item) => reportRid(item) === rid) || reports[0];
+    const byPid = new Map(papers.map((paper) => [paperPid(paper), paper]));
+    const byMeeting = new Map(meetings.map((meeting) => [meeting.id, meeting]));
+
+    if (!report) {
+      setHTML("#reportHero", emptyState("未找到汇报", "请先在 reports.csv 中新增 RID。"));
+      setHTML("#reportArticle", "");
+      setHTML("#reportToc", "");
+      return;
+    }
+
+    const paper = byPid.get(reportPid(report)) || {};
+    const meeting = byMeeting.get(report.meeting_id);
+    document.title = `${paper.title || reportRid(report)} | LACONET`;
+    setHTML("#reportHero", `
+      <p class="eyebrow">${Data.escapeHTML(report.report_type || "Report")}</p>
+      <h1>${Data.escapeHTML(paper.title || reportRid(report))}</h1>
+      <p class="summary">${Data.escapeHTML(report.summary || paper.summary || "")}</p>
+      <div class="paper-hero-meta">
+        <span>RID：${Data.escapeHTML(reportRid(report))}</span>
+        <span>PID：${Data.escapeHTML(reportPid(report))}</span>
+        <span>${Data.formatFullDate(reportDate(report))}</span>
+        <span>汇报人：${Data.escapeHTML(report.presenter || "待定")}</span>
+        ${Data.renderStatus(report.status)}
+      </div>
+      <div class="tag-row">${Data.renderTags(paper.tags)}</div>
+      <div class="material-row">
+        ${materialLinksForReport(report, paper, false)}
+        ${paperPid(paper) ? `<a class="material" href="${paperURL(paperPid(paper))}">论文条目</a>` : ""}
+        ${meeting ? `<a class="material" href="${meetingURL(meeting.id)}">会议纪要</a>` : ""}
+      </div>
+    `);
+
+    if (!report.notes) {
+      setHTML("#reportArticle", emptyState("暂无 Markdown 解读", "在 reports.csv 的 notes 字段中填写 notes/RID.md 路径。"));
+      setHTML("#reportToc", "");
       return;
     }
 
     try {
-      const markdown = await Data.fetchText(paper.notes);
+      const markdown = await Data.fetchText(report.notes);
       const parsed = Data.parseFrontMatter(markdown);
-      setHTML("#paperArticle", Data.markdownToHTML(parsed.body));
-      buildTOC("#paperToc");
+      setHTML("#reportArticle", Data.markdownToHTML(parsed.body));
+      buildTOC("#reportToc");
     } catch (error) {
-      setHTML("#paperArticle", emptyState("无法读取解读文件", error.message));
+      setHTML("#reportArticle", emptyState("无法读取解读文件", error.message));
+      setHTML("#reportToc", "");
     }
   }
 
@@ -301,12 +481,12 @@
   }
 
   async function initArchive() {
-    const [meetings, papers] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers")]);
-    const byId = new Map(papers.map((paper) => [paper.id, paper]));
+    const [meetings, papers, reports] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers"), Data.loadCSV("reports")]);
+    const byPid = new Map(papers.map((paper) => [paperPid(paper), paper]));
     const archived = Data.sortByDateDesc(meetings.filter((meeting) => meeting.status.includes("归档")), "date");
 
     setHTML("#archiveTimeline", archived.map((meeting) => {
-      const related = Data.list(meeting.paper_ids).map((id) => byId.get(id)).filter(Boolean);
+      const related = reportsForMeeting(meeting, reports).map((report) => ({ report, paper: byPid.get(reportPid(report)) || {} }));
       return `
         <article class="archive-item">
           <div class="archive-date">
@@ -318,9 +498,9 @@
               <h2>${Data.escapeHTML(meeting.topic)}</h2>
               ${Data.renderStatus(meeting.status)}
             </div>
-            ${renderMeetingMeta(meeting)}
+            ${renderMeetingMeta(meeting, related.map((item) => item.report))}
             <div class="archive-papers">
-              ${related.map((paper) => `<a href="${paperURL(paper.id)}">${Data.escapeHTML(paper.title)}<span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.presenter)}</span></a>`).join("") || "<span class='muted'>未关联文献</span>"}
+              ${related.map(({ report, paper }) => `<a href="${reportURL(reportRid(report))}">${Data.escapeHTML(paper.title || reportPid(report))}<span>${Data.escapeHTML(report.report_type || "文献解读")} · ${Data.escapeHTML(report.presenter || "待定")} · ${Data.escapeHTML(reportRid(report))}</span></a>`).join("") || "<span class='muted'>未关联 RID</span>"}
             </div>
             <div class="material-row">
               ${Data.renderMaterialLink("资料", meeting.materials)}
@@ -334,10 +514,10 @@
 
   async function initMeetingDetail() {
     const id = new URLSearchParams(window.location.search).get("id");
-    const [meetings, papers] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers")]);
+    const [meetings, papers, reports] = await Promise.all([Data.loadCSV("meetings"), Data.loadCSV("papers"), Data.loadCSV("reports")]);
     const archived = Data.sortByDateDesc(meetings.filter((meeting) => meeting.status.includes("归档")), "date");
     const meeting = meetings.find((item) => item.id === id) || archived[0] || meetings[0];
-    const byId = new Map(papers.map((paper) => [paper.id, paper]));
+    const byPid = new Map(papers.map((paper) => [paperPid(paper), paper]));
 
     if (!meeting) {
       setHTML("#meetingHero", emptyState("未找到组会", "请先在 meetings.csv 中新增组会记录。"));
@@ -345,7 +525,8 @@
       return;
     }
 
-    const related = Data.list(meeting.paper_ids).map((paperId) => byId.get(paperId)).filter(Boolean);
+    const related = reportsForMeeting(meeting, reports).map((report) => ({ report, paper: byPid.get(reportPid(report)) || {} }));
+    const meetingReports = related.map((item) => item.report);
     document.title = `${meeting.topic} | LACONET`;
     setHTML("#meetingHero", `
       <p class="eyebrow">Meeting Minutes</p>
@@ -354,14 +535,14 @@
       <div class="paper-hero-meta">
         <span>${Data.escapeHTML(meeting.mode || "待确认")}</span>
         <span>主持人：${Data.escapeHTML(personList(meeting.host))}</span>
-        <span>汇报人：${Data.escapeHTML(personList(meeting.presenter))}</span>
+        <span>汇报：${Data.escapeHTML(reportPresenterList(meetingReports))} · ${Data.escapeHTML(meetingReports.length ? `${meetingReports.length} 个 RID` : "待定")}</span>
         ${Data.renderStatus(meeting.status)}
       </div>
       <div class="material-row">
         ${Data.renderMaterialLink("资料", meeting.materials)}
         <a class="material" href="archive.html">返回归档</a>
       </div>
-      ${related.length ? `<div class="archive-papers hero-related">${related.map((paper) => `<a href="${paperURL(paper.id)}">${Data.escapeHTML(paper.title)}<span>${Data.escapeHTML(paper.direction)} · ${Data.escapeHTML(paper.presenter)}</span></a>`).join("")}</div>` : ""}
+      ${related.length ? `<div class="archive-papers hero-related">${related.map(({ report, paper }) => `<a href="${reportURL(reportRid(report))}">${Data.escapeHTML(paper.title || reportPid(report))}<span>${Data.escapeHTML(report.report_type || "文献解读")} · ${Data.escapeHTML(report.presenter || "待定")} · ${Data.escapeHTML(reportRid(report))}</span></a>`).join("")}</div>` : ""}
     `);
 
     if (!meeting.record) {
@@ -571,7 +752,7 @@
   }
 
   async function initDirections() {
-    const papers = await Data.loadCSV("papers");
+    const [papers, reports] = await Promise.all([Data.loadCSV("papers"), Data.loadCSV("reports")]);
     setHTML("#directionMap", directions.map((direction) => {
       const related = papers.filter((paper) => paper.direction === direction.name || Data.list(paper.tags).includes(direction.name));
       return `
@@ -583,9 +764,9 @@
           </div>
           <div class="compact-list">
             ${related.slice(0, 5).map((paper) => `
-              <a href="${paperURL(paper.id)}">
+              <a href="${paperURL(paperPid(paper))}">
                 <strong>${Data.escapeHTML(paper.title)}</strong>
-                <span>${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(paper.year)}</span>
+                <span>${Data.escapeHTML(paper.venue)} · ${Data.escapeHTML(paper.year)} · ${reportCountText(reportsForPaper(paper, reports))}</span>
               </a>
             `).join("") || "<span class='muted'>暂无文献</span>"}
           </div>
@@ -687,6 +868,7 @@
       if (page === "home") await initHome();
       if (page === "papers") await initPapers();
       if (page === "paper-detail") await initPaperDetail();
+      if (page === "report-detail") await initReportDetail();
       if (page === "meeting-detail") await initMeetingDetail();
       if (page === "archive") await initArchive();
       if (page === "equipment") await initEquipment();

@@ -4,6 +4,7 @@
   const DATA = {
     meetings: "data/meetings.csv",
     papers: "data/papers.csv",
+    reports: "data/reports.csv",
     equipment: "data/equipment.csv",
     equipmentUsage: "data/equipment-usage.csv"
   };
@@ -164,7 +165,7 @@
   }
 
   function isLink(value) {
-    return /^https?:\/\//i.test(value) || /^[\w./-]+\.(html|md|pdf|ppt|pptx|docx?|xlsx?)$/i.test(value) || value.startsWith("notes/") || value.startsWith("templates/");
+    return /^https?:\/\//i.test(value) || /^[\w./-]+\.(html|md|pdf|ppt|pptx|docx?|xlsx?)$/i.test(value) || value.startsWith("notes/") || value.startsWith("records/") || value.startsWith("templates/") || value.startsWith("materials/");
   }
 
   function renderMaterialLink(label, value) {

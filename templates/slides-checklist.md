@@ -489,7 +489,7 @@
 
 - PPT 文件：命名为 `YYYY-MM-DD_汇报人_论文关键词.pptx`。
 - 论文解读 Markdown：使用 `templates/literature-note-template.md` 整理。
-- 论文信息：在 `data/papers.csv` 中补充题目、作者、期刊会议、方向、摘要和讨论问题。
+- 论文信息：在 `data/papers.csv` 中补充 PID、题目、作者、期刊会议、方向和摘要；在 `data/reports.csv` 中补充 RID、汇报人、PPT、Markdown 和讨论问题。
 - 验证材料：如代码、结果图、表格或运行说明；暂不公开的材料可在网页中标注“内部链接”。
 
 ### 会后归档
@@ -499,7 +499,7 @@
 - 在 `records/meeting-YYYY-MM-DD.md` 中补充会议纪要。
 - 在 `data/meetings.csv` 的 `record` 字段关联会议纪要路径。
 - 在会议纪要中记录讨论结论、待办事项、负责人和下次检查点。
-- 若论文解读有修改，在对应 `notes/*.md` 中补充讨论后的理解与改进方向。
+- 若论文解读有修改，在对应 `notes/{RID}.md` 中补充讨论后的理解与改进方向。
 
 ## 十一、汇报前检查清单
 

@@ -3,12 +3,12 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>历史归档 | LACONET</title>
-    <meta name="description" content="LACONET 历史组会记录与资料归档。">
+    <title>汇报详情 | LACONET</title>
+    <meta name="description" content="LACONET 文献汇报详情页，按 RID 展示每次组会解读记录。">
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="assets/css/styles.css?v=20260904-pid-rid">
   </head>
-  <body data-page="archive">
+  <body data-page="report-detail">
     <header class="site-header">
       <a class="brand" href="index.html" aria-label="LACONET 首页">
         <span class="brand-mark">LA</span>
@@ -27,14 +27,20 @@
       </nav>
     </header>
 
-    <main class="page-shell">
-      <section class="page-heading">
-        <p class="eyebrow">Seminar Archive</p>
-        <h1>历史组会归档</h1>
-        <p>按日期回看组会主题、汇报文献、资料状态与后续待办。</p>
+    <main class="page-shell detail-shell">
+      <section class="paper-hero" id="reportHero">
+        <div class="skeleton-block"></div>
       </section>
 
-      <section class="archive-timeline" id="archiveTimeline"></section>
+      <div class="detail-layout">
+        <article class="article-body" id="reportArticle">
+          <div class="skeleton-block tall"></div>
+        </article>
+        <aside class="toc-panel" aria-label="汇报目录">
+          <strong>目录</strong>
+          <nav id="reportToc"></nav>
+        </aside>
+      </div>
     </main>
 
     <footer class="site-footer">
